@@ -62,7 +62,6 @@ class Trainer(BaseTrainer):
             self.args = args
             self.vocab = vocab
             self.model = Parser(args, vocab, emb_matrix=pretrain.emb)
-        self.parameters = [p for p in self.model.parameters() if p.requires_grad]
         if self.use_cuda:
             device = torch.device("cuda:1")
             self.model.cuda(device)
@@ -72,6 +71,7 @@ class Trainer(BaseTrainer):
 
             # 对 bias、gamma、beta变量不使用权重衰减
             # 权重衰减是一种正则化手段
+            self.parameters = [p for p in self.model.named_parameters() if p.requires_grad]
             no_decay = ['bias', 'gamma', 'beta']
             optimizer_grouped_parameters = [
                 {'params': [p for n, p in self.parameters if not any(nd in n for nd in no_decay)],
@@ -84,6 +84,7 @@ class Trainer(BaseTrainer):
                                       warmup=self.args['warmup_proportion'],
                                       t_total=self.args['max_steps'])
         else:
+            self.parameters = [p for p in self.model.parameters() if p.requires_grad]
             self.optimizer = utils.get_optimizer(self.args['optim'], self.parameters, self.args['lr'],
                                                  betas=(0.9, self.args['beta2']), eps=1e-6)
 
