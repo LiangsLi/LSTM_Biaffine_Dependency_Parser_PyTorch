@@ -71,7 +71,7 @@ class Trainer(BaseTrainer):
 
             # 对 bias、gamma、beta变量不使用权重衰减
             # 权重衰减是一种正则化手段
-            self.parameters = [p for p in self.model.named_parameters() if p.requires_grad]
+            self.parameters = [p for p in self.model.named_parameters()]
             no_decay = ['bias', 'gamma', 'beta']
             optimizer_grouped_parameters = [
                 {'params': [p for n, p in self.parameters if not any(nd in n for nd in no_decay)],
