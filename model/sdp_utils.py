@@ -24,7 +24,8 @@ def make_unlabeltarget(arcs, sentlens, use_cuda=False):
             word_idx += 1
         sent_idx += 1
     if use_cuda:
-        graphs = graphs.float().cuda()
+        device = torch.cuda.device(1)
+        graphs = graphs.float().cuda(device)
     else:
         graphs = graphs.float()
     return graphs
@@ -47,7 +48,8 @@ def make_labeltarget(arcs, sentlens, use_cuda=False):
             word_idx += 1
         sent_idx += 1
     if use_cuda:
-        graphs = graphs.long().cuda()
+        device = torch.cuda.device(1)
+        graphs = graphs.long().cuda(device)
     else:
         graphs = graphs.long()
     return graphs

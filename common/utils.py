@@ -89,7 +89,8 @@ def flatten_indices(seq_lens, width):
 
 def set_cuda(var, cuda):
     if cuda:
-        return var.cuda()
+        device = torch.cuda.device(1)
+        return var.cuda(device)
     return var
 
 
