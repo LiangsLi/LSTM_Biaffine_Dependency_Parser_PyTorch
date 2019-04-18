@@ -17,7 +17,7 @@ from data.dep_vocab import MultiVocab
 def unpack_batch(batch, use_cuda):
     """ Unpack a batch from the data loader. """
     if use_cuda:
-        device = torch.cuda.device(1)
+        device = torch.device("cuda:1")
         inputs = [b.cuda(device) if b is not None else None for b in batch[:11]]
     else:
         inputs = batch[:11]
@@ -42,7 +42,7 @@ class Trainer(BaseTrainer):
             self.model = Parser(args, vocab, emb_matrix=pretrain.emb)
         self.parameters = [p for p in self.model.parameters() if p.requires_grad]
         if self.use_cuda:
-            device = torch.cuda.device(1)
+            device = torch.device("cuda:1")
             self.model.cuda(device)
         else:
             self.model.cpu()
