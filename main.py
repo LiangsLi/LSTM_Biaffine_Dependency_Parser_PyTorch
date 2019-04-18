@@ -204,5 +204,5 @@ if __name__ == '__main__':
     args.batch_size = 3000
     # args.cpu = True
     pprint(args)
-    # main(args)
-    evaluate(args)
+    main(args)
+    # evaluate(args)
