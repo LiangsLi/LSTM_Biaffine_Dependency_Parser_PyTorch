@@ -110,7 +110,7 @@ class Trainer(BaseTrainer):
 
     def predict(self, batch, unsort=True):
         inputs, arcs, orig_idx, word_orig_idx, sentlens, wordlens = unpack_batch(batch, self.use_cuda)
-        print(sentlens)
+        # print(sentlens)
         word, word_mask, wordchars, wordchars_mask, upos, pretrained = inputs
         self.model.eval()
 

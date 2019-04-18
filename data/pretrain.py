@@ -60,7 +60,7 @@ class Pretrain:
         failed = 0
         with lzma.open(self.vec_filename, 'rb') as f:
             for i, line in enumerate(f):
-                print(line)
+                # print(line)
                 try:
                     line = line.decode()
                 except UnicodeDecodeError:

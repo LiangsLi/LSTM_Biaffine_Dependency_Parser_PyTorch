@@ -158,7 +158,7 @@ class Parser(nn.Module):
             weights = weights.masked_fill(word_mask.unsqueeze(1), 0)
             weights = weights.masked_fill(word_mask.unsqueeze(2), 0)
             weights = weights.unsqueeze(3)
-            print(unlabeled_scores[0])
+            # print(unlabeled_scores[0])
             head_probs = torch.sigmoid(unlabeled_scores).unsqueeze(3)
             label_probs = torch.softmax(deprel_scores, dim=3)
             semgraph_probs = head_probs * label_probs * weights

@@ -194,6 +194,7 @@ def evaluate(args):
 
 
 if __name__ == '__main__':
+    from pprint import pprint
     args = parse_args()
     args.save_name = 'sdp_parser.pt'
     args.train_file = './SDP/sdp_text_train.conllu'
@@ -202,6 +203,6 @@ if __name__ == '__main__':
     args.output_file = './Eval/sdp_text_test_predict.conllu'
     args.batch_size = 3000
     # args.cpu = True
-    print(args)
+    pprint(args)
     # main(args)
     evaluate(args)
