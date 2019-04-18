@@ -6,12 +6,15 @@ Created on Thu Feb 14 15:52:02 2019
 """
 import argparse
 import torch
+
+
 def parse_args():
     parser = argparse.ArgumentParser()
     # data arguments
     parser.add_argument('--data_dir', type=str, default='SDP', help='Root dir for saving models.')
     parser.add_argument('--wordvec_dir', type=str, default='Embeds', help='Directory of word vectors')
-    parser.add_argument('--train_file', type=str, default='SDP/sdp_text_train.conllu', help='Input file for data loader.')
+    parser.add_argument('--train_file', type=str, default='SDP/sdp_text_train.conllu',
+                        help='Input file for data loader.')
     parser.add_argument('--eval_file', type=str, default='SDP/sdp_text_test.conllu', help='Input file for data loader.')
     parser.add_argument('--output_file', type=str, default='SDP/out.txt', help='Output CoNLL-U file.')
     parser.add_argument('--gold_file', type=str, default='SDP/sdp_text_test.conllu', help='Output CoNLL-U file.')
@@ -36,7 +39,8 @@ def parse_args():
     parser.add_argument('--char_rec_dropout', type=float, default=0, help="Recurrent dropout")
     parser.add_argument('--no_char', dest='char', action='store_false', help="Turn off character model.")
     parser.add_argument('--no_pretrain', dest='pretrain', action='store_false', help="Turn off pretrained embeddings.")
-    parser.add_argument('--no_linearization', dest='linearization', action='store_false', help="Turn off linearization term.")
+    parser.add_argument('--no_linearization', dest='linearization', action='store_false',
+                        help="Turn off linearization term.")
     parser.add_argument('--no_distance', dest='distance', action='store_false', help="Turn off distance term.")
 
     parser.add_argument('--sample_train', type=float, default=1.0, help='Subsample training data.')
@@ -65,6 +69,7 @@ def parse_args():
 
     parser.add_argument('--seed', type=int, default=2019)
     parser.add_argument('--cuda', type=bool, default=torch.cuda.is_available())
+    parser.add_argument('--device_id', type=int, default=0)
     parser.add_argument('--cpu', action='store_true', help='Ignore CUDA.')
     args = parser.parse_args()
     return args

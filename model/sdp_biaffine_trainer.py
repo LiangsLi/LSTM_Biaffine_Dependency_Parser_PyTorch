@@ -34,8 +34,8 @@ def unpack_batch(batch, use_cuda):
           )
     """
     if use_cuda:
-        device = torch.device("cuda:1")
-        inputs = [b.cuda(device) if b is not None else None for b in batch[:6]]
+        # device = torch.device("cuda:1")
+        inputs = [b.cuda() if b is not None else None for b in batch[:6]]
     else:
         inputs = batch[:6]
     # inputs = [words, words_mark, wordchars, wordchars_mark, upos, pretrained]
@@ -63,8 +63,8 @@ class Trainer(BaseTrainer):
             self.vocab = vocab
             self.model = Parser(args, vocab, emb_matrix=pretrain.emb)
         if self.use_cuda:
-            device = torch.device("cuda:1")
-            self.model.cuda(device)
+            # device = torch.device("cuda:1")
+            self.model.cuda()
         else:
             self.model.cpu()
         if self.args['optim'] == 'BertAdam':
