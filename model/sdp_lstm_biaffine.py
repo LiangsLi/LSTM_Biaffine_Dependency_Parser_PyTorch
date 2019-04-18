@@ -102,7 +102,7 @@ class Parser(nn.Module):
             char_reps = PackedSequence(self.trans_char(self.drop(char_reps.data)), char_reps.batch_sizes)
             inputs += [char_reps]
 
-        lstm_inputs = torch.cat([x.data for x in inputs], 1)    # why .data ???
+        lstm_inputs = torch.cat(inputs, 1)    # why .data ???
 
         lstm_inputs = self.worddrop(lstm_inputs, self.drop_replacement)
         lstm_inputs = self.drop(lstm_inputs)
