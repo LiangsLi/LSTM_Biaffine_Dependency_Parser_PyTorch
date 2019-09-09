@@ -4,7 +4,9 @@ import torch.nn.functional as F
 
 
 class PairwiseBilinear(nn.Module):
-    ''' A bilinear module that deals with broadcasting for efficient memory usage.
+    '''
+    使用版本
+    A bilinear module that deals with broadcasting for efficient memory usage.
     Input: tensors of sizes (N x L1 x D1) and (N x L2 x D2)
     Output: tensor of size (N x L1 x L2 x O)'''
 
@@ -72,7 +74,7 @@ class BiaffineScorer(nn.Module):
 class PairwiseBiaffineScorer(nn.Module):
     def __init__(self, input1_size, input2_size, output_size):
         """
-
+        使用版本
         :param input1_size:
         :param input2_size:
         :param output_size:双仿的分类空间
@@ -106,7 +108,7 @@ class DeepBiaffineScorer(nn.Module):
     def __init__(self, input1_size, input2_size, hidden_size, output_size, hidden_func=F.relu, dropout=0,
                  pairwise=True):
         """
-
+        使用版本
         :param input1_size:
         :param input2_size:
         :param hidden_size:

@@ -7,6 +7,7 @@ Created on Thu Feb 14 23:47:28 2019
 from collections import Counter, OrderedDict
 from vocab import BaseVocab, BaseMultiVocab
 from vocab import VOCAB_PREFIX, EMPTY, EMPTY_ID
+from pprint import pprint
 
 
 class CharVocab(BaseVocab):
@@ -52,6 +53,7 @@ class WordVocab(BaseVocab):
 
         self._id2unit = VOCAB_PREFIX + list(sorted(list(counter.keys()), key=lambda k: counter[k], reverse=True))
         self._unit2id = {w: i for i, w in enumerate(self._id2unit)}
+        print(f"--vocab size:{len(self._unit2id)}")
 
 
 class GraphVocab(BaseVocab):
@@ -67,8 +69,17 @@ class GraphVocab(BaseVocab):
                     deprel = arc.split(':')[1]
                     deprels.append(deprel)
         counter = Counter(deprels)
-        self._id2unit = VOCAB_PREFIX + list(sorted(list(counter.keys()), key=lambda k: counter[k], reverse=True))
+        for k in list(counter.keys()):
+            if counter[k] < self.cutoff:
+                del counter[k]
+        self._id_list = list(sorted(list(counter.keys()), key=lambda k: counter[k], reverse=True))
+        self._id2unit = ['<EMPTY>', '<UNK>'] + self._id_list
         self._unit2id = {w: i for i, w in enumerate(self._id2unit)}
+        # pprint(counter)
+        # print('----------------')
+        # print(len(counter))
+        # pprint(len(self._id2unit))
+        # print('------------------')
 
     def get_arc(self, sent, idx):
         res = []

@@ -18,6 +18,7 @@ from data_utils import get_long_tensor, sort_all
 from pretrain import Pretrain
 
 from common.options import parse_args
+from common.utils import get_logger
 
 
 class DataLoader(object):
@@ -36,6 +37,7 @@ class DataLoader(object):
         self.args = args
         self.eval = evaluation
         self.shuffled = not self.eval
+        self.logger = get_logger(args['logger_name'])
 
         # check if input source is a file or a Document object
         if isinstance(input_src, str):
@@ -45,6 +47,14 @@ class DataLoader(object):
             # 4	总统	总统	NN	NN	_	6	Agt	6:Agt|12:Agt	_
             # [总统, NN, 6:Agt|12:Agt]
             self.conll, data = self.load_file(filename, evaluation=self.eval)
+            # data= [
+            #             [ #sent1
+            #                   [word1,pos1,deps1],
+            #                   [word2,pos2,deps2],
+            #             ],
+            #             [ #sent2
+            #             ]
+            #       ]
         elif isinstance(input_src, Document):
             filename = None
             doc = input_src
@@ -62,9 +72,18 @@ class DataLoader(object):
         if args.get('sample_train', 1.0) < 1.0 and not self.eval:
             keep = int(args['sample_train'] * len(data))
             data = random.sample(data, keep)
-            print("Subsample training set with rate {}".format(args['sample_train']))
+            self.logger.info("Subsample training set with rate {}".format(args['sample_train']))
 
         data = self.preprocess(data, self.vocab, self.pretrain_vocab, args)
+        # data=[
+        #        [ # sent1
+        #           word_list,
+        #           char_list,
+        #           pos_list,
+        #           pre-train_list,
+        #           graph_list
+        #        ]
+        #      ]
 
         if self.shuffled:
             random.shuffle(data)
@@ -74,14 +93,14 @@ class DataLoader(object):
         # 先按照句长排序，然后再切分为batches
         self.data = self.chunk_batches(data)
         if filename is not None:
-            print("{} batches created for {}.".format(len(self.data), filename))
+            self.logger.info("{} batches created for {}.".format(len(self.data), filename))
 
     def init_vocab(self, data):
-        assert self.eval == False  # for eval vocab must exist
+        assert not self.eval  # for eval vocab must exist
         charvocab = CharVocab(data, self.args['shorthand'])
-        wordvocab = WordVocab(data, self.args['shorthand'], cutoff=0, lower=True)
+        wordvocab = WordVocab(data, self.args['shorthand'], cutoff=self.args['word_cutoff'], lower=True)
         uposvocab = WordVocab(data, self.args['shorthand'], idx=1)
-        graphvocab = GraphVocab(data, self.args['shorthand'], idx=2)
+        graphvocab = GraphVocab(data, self.args['shorthand'], idx=2, cutoff=self.args['label_cutoff'])
         vocab = MultiVocab({'char': charvocab,
                             'word': wordvocab,
                             'upos': uposvocab,
@@ -101,6 +120,16 @@ class DataLoader(object):
         return processed
 
     def chunk_batches(self, data):
+        # data=[
+        #        [ # sent1
+        #           word_list,
+        #           char_list,
+        #           pos_list,
+        #           pre-train_list,
+        #           graph_list
+        #        ]
+        #      ]
+
         res = []
 
         if not self.eval:
@@ -119,7 +148,7 @@ class DataLoader(object):
 
         if currentlen > 0:
             res.append(current)
-
+        # res=[batch1,batch2,....]
         return res
 
     def __len__(self):
@@ -159,7 +188,7 @@ class DataLoader(object):
         word_lens = [len(x) for x in batch_words]
 
         batch_words, word_orig_idx = sort_all([batch_words], word_lens)
-        batch_words = batch_words[0]    # 去掉外层括号
+        batch_words = batch_words[0]  # 去掉外层括号
         word_lens = [len(x) for x in batch_words]
 
         # convert to tensors and pad to max length
@@ -179,6 +208,14 @@ class DataLoader(object):
     def load_file(self, filename, evaluation=False):
         conll_file = conll.CoNLLFile(filename)
         data = conll_file.get(['word', 'upos', 'deps'], as_sentences=True)
+        # data= [
+        #             [ #sent1
+        #                   [word1,pos1,deps1],
+        #                   [word2,pos2,deps2],
+        #             ],
+        #             [ #sent2
+        #             ]
+        #       ]
         return conll_file, data
 
     def load_doc(self, doc):

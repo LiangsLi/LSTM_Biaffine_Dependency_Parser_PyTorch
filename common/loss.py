@@ -2,11 +2,13 @@
 Different loss functions.
 """
 import sys
+
 sys.path.append('..')
 import torch
 import torch.nn as nn
 
 import data.constant as constant
+
 
 def SequenceLoss(vocab_size):
     weight = torch.ones(vocab_size)
@@ -14,11 +16,13 @@ def SequenceLoss(vocab_size):
     crit = nn.NLLLoss(weight)
     return crit
 
+
 class MixLoss(nn.Module):
     """
     A mixture of SequenceLoss and CrossEntropyLoss.
     Loss = SequenceLoss + alpha * CELoss
     """
+
     def __init__(self, vocab_size, alpha):
         super().__init__()
         self.seq_loss = SequenceLoss(vocab_size)
@@ -32,6 +36,7 @@ class MixLoss(nn.Module):
         loss = sl + self.alpha * cel
         return loss
 
+
 class MaxEntropySequenceLoss(nn.Module):
     """
     A max entropy loss that encourage the model to have large entropy,
@@ -39,6 +44,7 @@ class MaxEntropySequenceLoss(nn.Module):
 
     Loss = NLLLoss + alpha * EntropyLoss
     """
+
     def __init__(self, vocab_size, alpha):
         super().__init__()
         weight = torch.ones(vocab_size)
@@ -57,7 +63,6 @@ class MaxEntropySequenceLoss(nn.Module):
         mask = targets.eq(constant.PAD_ID).unsqueeze(1).expand_as(inputs)
         masked_inputs = inputs.clone().masked_fill_(mask, 0.0)
         p = torch.exp(masked_inputs)
-        ent_loss = p.mul(masked_inputs).sum() / inputs.size(0) # average over minibatch
+        ent_loss = p.mul(masked_inputs).sum() / inputs.size(0)  # average over minibatch
         loss = nll_loss + self.alpha * ent_loss
         return loss
-

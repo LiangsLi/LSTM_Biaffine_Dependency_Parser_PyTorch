@@ -15,9 +15,10 @@ from sdp_lstm_biaffine import Parser
 from data.dep_vocab import MultiVocab
 from sdp_utils import sdp_decoder, parse_semgraph
 from modules.optimization import BertAdam
+from common.utils import get_logger
 
 
-def unpack_batch(batch, use_cuda):
+def unpack_batch(batch, use_cuda, is_cuda_tensor=False, is_dataset=False):
     """ Unpack a batch from the data loader.
     batch=(
             words,  0
@@ -34,8 +35,12 @@ def unpack_batch(batch, use_cuda):
           )
     """
     if use_cuda:
-        # device = torch.device("cuda:1")
-        inputs = [b.cuda() if b is not None else None for b in batch[:6]]
+        if is_cuda_tensor:
+            inputs = batch[:6]
+        elif is_dataset:
+            inputs = [b.squeeze().cuda() if b is not None else None for b in batch[:6]]
+        else:
+            inputs = [b.cuda() if b is not None else None for b in batch[:6]]
     else:
         inputs = batch[:6]
     # inputs = [words, words_mark, wordchars, wordchars_mark, upos, pretrained]
@@ -62,8 +67,8 @@ class Trainer(BaseTrainer):
             self.args = args
             self.vocab = vocab
             self.model = Parser(args, vocab, emb_matrix=pretrain.emb)
+            self.logger = get_logger(args['logger_name'])
         if self.use_cuda:
-            # device = torch.device("cuda:1")
             self.model.cuda()
         else:
             self.model.cpu()
@@ -80,37 +85,62 @@ class Trainer(BaseTrainer):
                  'weight_decay_rate': 0.0}
             ]
             self.optimizer = BertAdam(optimizer_grouped_parameters,
-                                      lr=self.args['learning_rate'],
+                                      lr=self.args['bert_adam_lr'],
                                       warmup=self.args['warmup_proportion'],
                                       t_total=self.args['max_steps'])
         else:
             self.parameters = [p for p in self.model.parameters() if p.requires_grad]
             self.optimizer = utils.get_optimizer(self.args['optim'], self.parameters, self.args['lr'],
-                                                 betas=(0.9, self.args['beta2']), eps=1e-6)
+                                                 betas=(self.args['beta1'], self.args['beta2']),
+                                                 eps=self.args['eps'],
+                                                 weight_decay=self.args['L2_penalty'])
+        # print("------model named parameters:------")
+        # for n, p in self.model.named_parameters():
+        #     print("name:", n)
+        #     print(p)
+        # print("---" * 10)
+        # print("named para num:",len(list(self.model.named_parameters())))
+        # print("para num:",len(list(self.model.parameters())))
 
-    def update(self, batch, eval=False):
+    def update(self, batch, global_step, cuda_data=False, eval=False):
         # inputs = [words, words_mark, wordchars, wordchars_mark, upos, pretrained]
-        inputs, arcs, orig_idx, word_orig_idx, sentlens, wordlens = unpack_batch(batch, self.use_cuda)
+        inputs, arcs, orig_idx, word_orig_idx, sentlens, wordlens = unpack_batch(batch, self.use_cuda,
+                                                                                 is_cuda_tensor=cuda_data)
         word, word_mask, wordchars, wordchars_mask, upos, pretrained = inputs
 
         if eval:
             self.model.eval()
         else:
             self.model.train()
-            self.optimizer.zero_grad()
         loss, _ = self.model(word, word_mask, wordchars, wordchars_mask, upos, pretrained, arcs, word_orig_idx,
                              sentlens, wordlens)
-        loss_val = loss.data.item()
+        if self.args['split_loss']:
+            loss_val = (loss[0] + loss[1] + loss[2]).data.item()
+        else:
+            loss_val = loss.data.item()
         if eval:
             return loss_val
-
-        loss.backward()
+        if self.args['big_batch']:
+            loss = loss / self.args['accumulation_steps']
+        if self.args['split_loss'] and self.args['nlpcc']:
+            loss[0].backward(retain_graph=True)
+            loss[1].backward(retain_graph=True)
+            loss[2].backward()
+        else:
+            loss.backward()
         torch.nn.utils.clip_grad_norm_(self.model.parameters(), self.args['max_grad_norm'])
-        self.optimizer.step()
+        if self.args['big_batch']:
+            if global_step % self.args['accumulation_steps']:
+                self.optimizer.step()
+                self.optimizer.zero_grad()
+        else:
+            self.optimizer.step()
+            self.optimizer.zero_grad()
         return loss_val
 
-    def predict(self, batch, unsort=True):
-        inputs, arcs, orig_idx, word_orig_idx, sentlens, wordlens = unpack_batch(batch, self.use_cuda)
+    def predict(self, batch, cuda_data=False, unsort=True):
+        inputs, arcs, orig_idx, word_orig_idx, sentlens, wordlens = unpack_batch(batch, self.use_cuda,
+                                                                                 is_cuda_tensor=cuda_data)
         # print(sentlens)
         word, word_mask, wordchars, wordchars_mask, upos, pretrained = inputs
         self.model.eval()
@@ -139,15 +169,15 @@ class Trainer(BaseTrainer):
         }
         try:
             torch.save(params, filename)
-            print("model saved to {}".format(filename))
+            self.logger.info("model saved to {}".format(filename))
         except BaseException:
-            print("[Warning: Saving failed... continuing anyway.]")
+            self.logger.exception("[Warning: Saving failed... continuing anyway.]")
 
     def load(self, pretrain, filename):
         try:
             checkpoint = torch.load(filename, lambda storage, loc: storage)
         except BaseException:
-            print("Cannot load model from {}".format(filename))
+            self.logger.exception("Cannot load model from {}".format(filename))
             exit()
         self.args = checkpoint['config']
         self.vocab = MultiVocab.load_state_dict(checkpoint['vocab'])

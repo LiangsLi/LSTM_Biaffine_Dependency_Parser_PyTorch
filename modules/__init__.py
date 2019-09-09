@@ -1,2 +1,2 @@
-print(__name__)
+# print(__name__)
 a = 5

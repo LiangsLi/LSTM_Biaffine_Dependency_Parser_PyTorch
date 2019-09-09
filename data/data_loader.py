@@ -5,6 +5,7 @@ Created on Tue Feb 12 15:58:12 2019
 @author: zzshen
 """
 import sys
+
 sys.path.append('..')
 import random
 import torch
@@ -18,14 +19,14 @@ from pretrain import Pretrain
 
 from common.options import parse_args
 
+
 class DataLoader(object):
     def __init__(self, input_src, batch_size, args, pretrain, vocab=None, evaluation=False):
         self.batch_size = batch_size
         self.args = args
         self.eval = evaluation
         self.shuffled = not self.eval
-        
-        
+
         # check if input source is a file or a Document object
         if isinstance(input_src, str):
             filename = input_src
@@ -35,13 +36,13 @@ class DataLoader(object):
             filename = None
             doc = input_src
             self.conll, data = self.load_doc(doc)
-        
+
         # handle vocab
         if vocab is None:
             self.vocab = self.init_vocab(data)
         else:
             self.vocab = vocab
-        
+
         self.pretrain_vocab = pretrain.vocab
 
         # filter and sample data
@@ -49,10 +50,9 @@ class DataLoader(object):
             keep = int(args['sample_train'] * len(data))
             data = random.sample(data, keep)
             print("Subsample training set with rate {}".format(args['sample_train']))
-        
+
         data = self.preprocess(data, self.vocab, self.pretrain_vocab, args)
-        
-        
+
         if self.shuffled:
             random.shuffle(data)
         self.num_examples = len(data)
@@ -63,7 +63,7 @@ class DataLoader(object):
             print("{} batches created for {}.".format(len(self.data), filename))
 
     def init_vocab(self, data):
-        assert self.eval == False # for eval vocab must exist
+        assert self.eval == False  # for eval vocab must exist
         charvocab = CharVocab(data, self.args['shorthand'])
         wordvocab = WordVocab(data, self.args['shorthand'], cutoff=0, lower=True)
         uposvocab = WordVocab(data, self.args['shorthand'], idx=1)
@@ -88,13 +88,12 @@ class DataLoader(object):
             break
         return processed
 
-  
     def chunk_batches(self, data):
         res = []
 
         if not self.eval:
             # sort sentences (roughly) by length for better memory utilization
-            data = sorted(data, key = lambda x: len(x[0]), reverse=random.random() > .5)
+            data = sorted(data, key=lambda x: len(x[0]), reverse=random.random() > .5)
 
         current = []
         currentlen = 0
@@ -110,7 +109,7 @@ class DataLoader(object):
             res.append(current)
 
         return res
-    
+
     def __len__(self):
         return len(self.data)
 
@@ -122,11 +121,11 @@ class DataLoader(object):
             raise IndexError
         batch = self.data[key]
         batch_size = len(batch)
-        
+
         batch = list(zip(*batch))
-        
+
         assert len(batch) == 6
-        
+
         # sort sentences by lens for easy RNN operations
         lens = [len(x) for x in batch[0]]
         batch, orig_idx = sort_all(batch, lens)
@@ -134,7 +133,7 @@ class DataLoader(object):
         # sort words by lens for easy char-RNN operations
         batch_words = [w for sent in batch[1] for w in sent]
         word_lens = [len(x) for x in batch_words]
-        
+
         batch_words, word_orig_idx = sort_all([batch_words], word_lens)
         batch_words = batch_words[0]
         word_lens = [len(x) for x in batch_words]
@@ -143,7 +142,7 @@ class DataLoader(object):
         words = batch[0]
         words = get_long_tensor(words, batch_size)
         words_mask = torch.eq(words, PAD_ID)
-        
+
         wordchars = get_long_tensor(batch_words, len(word_lens))
         wordchars_mask = torch.eq(wordchars, PAD_ID)
 
@@ -153,7 +152,6 @@ class DataLoader(object):
         head = get_long_tensor(batch[4], batch_size)
         deprel = get_long_tensor(batch[5], batch_size)
         return words, words_mask, wordchars, wordchars_mask, upos, pretrained, head, deprel, orig_idx, word_orig_idx, sentlens, word_lens
-
 
     def load_file(self, filename, evaluation=False):
         conll_file = conll.CoNLLFile(filename)
@@ -173,6 +171,7 @@ class DataLoader(object):
         self.data = self.chunk_batches(data)
         random.shuffle(self.data)
 
+
 if __name__ == '__main__':
     conll_file_path = '../UD/zh-ud-train.conllu'
     conll_file = conll.CoNLLFile(conll_file_path)
@@ -186,18 +185,16 @@ if __name__ == '__main__':
     pretrain_file = '../save/sdp.pretrain.pt'
     pretrain = Pretrain(pretrain_file, vec_file)
     train_batch = DataLoader(args['train_file'], args['batch_size'], args, pretrain, evaluation=False)
-    
+
     word = train_batch[1][0]
     words_mask = train_batch[1][1]
     wordchars = train_batch[1][2]
     wordchars_mask = train_batch[1][3]
     pretrained = train_batch[1][5]
     upos = train_batch[1][4]
-    
+
     print(word)
     print('|pretrained: {}'.format(pretrained))
     print('|word size: {}'.format(word.size()))
     print('|words mask size: {}'.format(words_mask.size()))
     print('|wordchars size: {}'.format(wordchars.size()))
-
-        

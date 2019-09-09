@@ -93,7 +93,7 @@ class HighwayLSTM(nn.Module):
             # 除了第一层的in_size==input_size之外，其他层的in_size==hidden_size*num_directions
             in_size = hidden_size * self.num_directions
 
-    def forward(self, input, seqlens, hx=None):
+    def forward(self, input, seqlens, hx=None, real_highway=True):
         highway_func = (lambda x: x) if self.highway_func is None else self.highway_func
 
         hs = []
@@ -114,10 +114,16 @@ class HighwayLSTM(nn.Module):
 
             hs.append(ht)
             cs.append(ct)
+            carry_gate = torch.sigmoid(self.gate[l](input.data))
             # highway连接：（残差连接）
-            input = PackedSequence(
-                h.data + torch.sigmoid(self.gate[l](input.data)) * highway_func(self.highway[l](input.data)),
-                input.batch_sizes)
+            if real_highway:
+                input = PackedSequence(
+                    (1 - carry_gate) * h.data + carry_gate * self.highway[l](input.data),
+                    input.batch_sizes)
+            else:
+                input = PackedSequence(
+                    h.data + carry_gate * highway_func(self.highway[l](input.data)),
+                    input.batch_sizes)
 
         if self.pad:
             input = pad_packed_sequence(input, batch_first=self.batch_first)[0]

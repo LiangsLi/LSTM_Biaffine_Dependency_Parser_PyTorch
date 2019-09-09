@@ -1,0 +1,1 @@
+python main.py --mode train --rec_dropout 0 --vec_file='Embeds/sem16_tencent.pkl' --save_name 'bl_tx_lstm_4.pt' --num_layers 4

@@ -12,6 +12,7 @@ import torch
 from data.lang import lcode2lang
 import data.constant as constant
 import others.conll18_ud_eval as ud_eval
+import logging
 
 
 # filenames
@@ -61,13 +62,13 @@ def harmonic_mean(a, weights=None):
 
 
 # torch utils
-def get_optimizer(name, parameters, lr, betas=(0.9, 0.999), eps=1e-8):
+def get_optimizer(name, parameters, lr, betas=(0.9, 0.999), eps=1e-8, weight_decay=0):
     if name == 'sgd':
         return torch.optim.SGD(parameters, lr=lr)
     elif name == 'adagrad':
         return torch.optim.Adagrad(parameters, lr=lr)
     elif name == 'adam':
-        return torch.optim.Adam(parameters, lr=lr, betas=betas, eps=eps)
+        return torch.optim.Adam(parameters, lr=lr, betas=betas, eps=eps, weight_decay=weight_decay)
     elif name == 'adamax':
         return torch.optim.Adamax(parameters)  # use default lr
     else:
@@ -89,7 +90,6 @@ def flatten_indices(seq_lens, width):
 
 def set_cuda(var, cuda):
     if cuda:
-        # device = torch.device("cuda:1")
         return var.cuda()
     return var
 
@@ -216,6 +216,10 @@ def tensor_unsort(sorted_tensor, oidx):
     assert sorted_tensor.size(0) == len(oidx), "Number of list elements must match with original indices."
     backidx = [x[0] for x in sorted(enumerate(oidx), key=lambda x: x[1])]
     return sorted_tensor[backidx]
+
+
+def get_logger(logger_name):
+    return logging.getLogger(logger_name)
 
 
 if __name__ == '__main__':

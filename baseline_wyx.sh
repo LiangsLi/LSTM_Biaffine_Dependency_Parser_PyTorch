@@ -1,0 +1,1 @@
+python main.py --mode train --rec_dropout 0 --vec_file='Embeds/sdp_correct_embeds.pkl' --save_name_suffix  --log_file

@@ -25,6 +25,19 @@ def get_long_tensor(tokens_list, batch_size, pad_id=constant.PAD_ID):
     return tokens
 
 
+def get_cuda_long_tensor(tokens_list, batch_size, pad_id=constant.PAD_ID):
+    """ Convert (list of )+ tokens to a padded LongTensor. """
+    sizes = []
+    x = tokens_list
+    while isinstance(x[0], list):
+        sizes.append(max(len(y) for y in x))
+        x = [z for y in x for z in y]
+    tokens = torch.cuda.LongTensor(batch_size, *sizes).fill_(pad_id)
+    for i, s in enumerate(tokens_list):
+        tokens[i, :len(s)] = torch.cuda.LongTensor(s)
+    return tokens
+
+
 def get_float_tensor(features_list, batch_size):
     if features_list is None or features_list[0] is None:
         return None
@@ -33,6 +46,17 @@ def get_float_tensor(features_list, batch_size):
     features = torch.FloatTensor(batch_size, seq_len, feature_len).zero_()
     for i, f in enumerate(features_list):
         features[i, :len(f), :] = torch.FloatTensor(f)
+    return features
+
+
+def get_cuda_float_tensor(features_list, batch_size):
+    if features_list is None or features_list[0] is None:
+        return None
+    seq_len = max(len(x) for x in features_list)
+    feature_len = len(features_list[0][0])
+    features = torch.cuda.FloatTensor(batch_size, seq_len, feature_len).zero_()
+    for i, f in enumerate(features_list):
+        features[i, :len(f), :] = torch.cuda.FloatTensor(f)
     return features
 
 

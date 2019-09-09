@@ -11,7 +11,7 @@ FIELD_TO_IDX = {'id': 0, 'word': 1, 'lemma': 2, 'upos': 3, 'xpos': 4,
                 'misc': 9}
 
 
-class CoNLLFile():
+class CoNLLFile(object):
     def __init__(self, filename=None, input_str=None, ignore_gapping=True):
         # If ignore_gapping is True, all words that are gap fillers (identified with a period in
         # the sentence index) will be ignored.
@@ -130,6 +130,10 @@ class CoNLLFile():
                     continue
                 if len(field_idxs) == 1:
                     ln[field_idxs[0]] = contents[cidx]
+                    if fields == ['deps']:
+                        head_value, deprel_value = contents[cidx].split('|')[0].split(':')
+                        ln[FIELD_TO_IDX['head']] = head_value
+                        ln[FIELD_TO_IDX['deprel']] = deprel_value
                 else:
                     for fid, ct in zip(field_idxs, contents[cidx]):
                         ln[fid] = ct
